@@ -1,6 +1,8 @@
 # Awesome Harness Engineering
 
 > 为 Vibe Coding 团队打造的 Cursor AI 编程辅助配置
+>
+> by **瑞小美轻医美集团** · 源自真实团队的 Vibe Coding 实践
 
 [![GitHub Stars](https://img.shields.io/github/stars/nongjun/awesome-harness-engineering?style=flat)](https://github.com/nongjun/awesome-harness-engineering/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -199,7 +201,9 @@ Python / Go / Swift / TypeScript / Vue / 微信小程序 / Docker / Nginx / MySQ
 
 ---
 
-## 致谢
+## 关于
+
+本项目由**瑞小美轻医美集团**高管团队在真实 Vibe Coding 实践中打磨而成。团队成员均为非技术背景，通过自然语言指挥 AI 开发了多个生产级产品——这套 harness 就是在这个过程中沉淀出来的最佳实践。
 
 设计灵感参考了 [Everything Claude Code](https://github.com/affaan-m/everything-claude-code)（Anthropic 黑客松获奖项目），在其自动化和安全体系基础上融入实战经验：闭环验证、规则沉淀、文档园丁、先策略后执行、渐进式按需加载。
 
