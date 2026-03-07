@@ -1,0 +1,66 @@
+---
+description: 瑞小美 AI 接入规范——涉及 AI 调用、模型选择、提示词时加载
+alwaysApply: false
+globs:
+  - "**/ai_service*"
+  - "**/services/ai*"
+  - "**/prompts/**"
+  - "**/*_prompts.py"
+  - "**/AIService*"
+  - "**/model_selector*"
+  - "**/ModelSelector*"
+---
+
+# 瑞小美 AI 接入规范
+
+## 核心原则
+
+| 原则 | 要求 |
+|------|------|
+| 优先最强 | 默认使用 Claude Opus 4.5，失败后自动降级 |
+| 智能降级 | Claude → Gemini Pro → Gemini Flash（每级重试 2 次） |
+| 统一配置 | 从门户系统统一获取 Key，各模块禁止独立配置 |
+| 统一服务 | 通过 `shared_backend.AIService` 调用，禁止直接请求 API |
+
+## 服务商降级策略
+
+```
+4sapi.com (首选): Claude → Gemini Pro → Gemini Flash
+    ↓ 全部失败
+OpenRouter (备选): Gemini Pro → Gemini Flash
+```
+
+降级触发：首字超时 10 秒、请求失败、每模型最多 2 次重试。
+
+## 模型配置
+
+| 等级 | 模型 | 说明 |
+|------|------|------|
+| 首选 | claude-opus-4-5-20251101-thinking | 所有任务首先尝试 |
+| 标准 | gemini-3-pro-preview | Claude 失败后降级 |
+| 快速 | gemini-3-flash-preview | 最终保底 |
+| 生图 | gemini-2.5-flash-image-preview | 图像生成专用 |
+| 视频 | veo3.1-pro | 视频生成专用 |
+
+## 强制要求
+
+- 使用 `shared_backend.services.ai_service.AIService`，禁止直接调 API
+- 禁止硬编码 API Key
+- 初始化时必须传入 `db_session`（记录调用日志）
+- 调用时必须传入 `prompt_name`（用于统计）
+
+## 提示词规范
+
+- 文件位置：`{模块}/后端服务/prompts/{功能名}_prompts.py`
+- 必须包含 `PROMPT_META`（name、display_name、module、variables）
+- 模块启动时通过 `scan_and_register_prompts` 自动注册到数据库
+
+## AI 响应解析
+
+必须使用公共函数：`parse_ai_json_response` 或 `safe_parse_ai_json`，禁止自行编写解析逻辑。
+
+## 配置入口
+
+- 门户系统 AI 配置页面管理 Key 和模型
+- 各模块通过 `GET /api/ai/internal/config` 获取配置（5 分钟缓存）
+- 调用统计：门户系统 → AI 配置 → 调用统计
