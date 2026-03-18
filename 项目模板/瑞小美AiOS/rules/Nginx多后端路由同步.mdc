@@ -1,0 +1,41 @@
+---
+description: 修改 scrm.ireborn.com.cn 下多后端共享的 API 路径时，必须同步更新 Nginx 路由配置，防止请求被路由到错误后端
+alwaysApply: false
+globs:
+  - "**/内容中心/后端服务/app/api/wecom.py"
+  - "**/联系人/后端服务/app/api/wecom.py"
+  - "**/门户系统/后端服务/app/api/wecom.py"
+  - "**/企微托管/后端服务/app/api/wecom*.py"
+  - "**/conf.d/scrm.ireborn.com.cn.conf"
+---
+
+# Nginx 多后端路由同步
+
+## 背景
+
+`scrm.ireborn.com.cn` 的 Nginx 将不同 `/api/` 前缀路由到不同后端服务。其中 `/api/wecom` 被联系人模块（8020）兜底，但内容中心（8003）、门户（8025）、企微托管（8041）也在该命名空间下注册了子路由。**此问题已导致三次线上故障。**
+
+## 规则
+
+当在 `/api/wecom/` 命名空间下新增或修改路由时：
+
+1. **必须检查** `/etc/nginx/conf.d/scrm.ireborn.com.cn.conf` 中是否已有对应的精确 location
+2. **如果没有**，必须在 `location /api/wecom`（联系人兜底）之前添加更具体的 location 规则
+3. Nginx 最长前缀匹配：`/api/wecom/media/` 优先于 `/api/wecom`
+
+## 当前路由映射
+
+| Nginx location | 后端 | 端口 |
+|---|---|---|
+| `/api/wecom/jsapi-signature` | 内容中心 | 8003 |
+| `/api/wecom/agent-config-signature` | 内容中心 | 8003 |
+| `/api/wecom/oauth-url` | 内容中心 | 8003 |
+| `/api/wecom/verify-token` | 内容中心 | 8003 |
+| `/api/wecom/user-info` | 内容中心 | 8003 |
+| `/api/wecom/oauth-callback` | 内容中心 | 8003 |
+| `/api/wecom/media/` | 内容中心 | 8003 |
+| `/api/wecom/contact/` | 内容中心 | 8003 |
+| `/api/wecom/qrcode-login/` | 内容中心 | 8003 |
+| `/api/wecom/external-contact/` | 门户 | 8025 |
+| `/api/wecom/internal/` | 门户 | 8025 |
+| `/api/wecom`（兜底） | 联系人 | 8020 |

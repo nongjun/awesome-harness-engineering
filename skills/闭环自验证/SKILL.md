@@ -122,14 +122,17 @@ browser_take_screenshot(fullPage: true) → 截取完整页面
 
 ## 第四步：系统验证（装"听诊器"）
 
-### 4.1 容器日志检查
+### 4.1 日志检查（SLS 首选）
 
 ```bash
-# 查看最近日志，过滤错误
-docker logs <container-name> --since 2m 2>&1 | grep -iE "error|exception|traceback|failed"
+# 首选：通过 SLS 查询最近 5 分钟的错误日志
+cd /root/瑞小美AiOS && python scripts/sls_query.py -s <服务名> -m 5
 
-# 后端 API 日志
-docker logs <backend-container> --since 2m 2>&1 | tail -50
+# 按关键词搜索
+python scripts/sls_query.py -s <服务名> -k "关键词" -m 10
+
+# 兜底：SLS 不可用时使用 docker logs（仅保留 1MB，可能被轮转覆盖）
+docker logs <container-name> --since 2m 2>&1 | grep -iE "error|exception|traceback|failed"
 ```
 
 ### 4.2 健康检查
@@ -206,7 +209,7 @@ UI 验证：✅ 页面元素正确，交互正常
 1. **不要假设改动有效** — 每次都验证
 2. **先看全局再看细节** — 先确认构建成功和容器正常，再验证具体功能
 3. **浏览器快照优于截图** — snapshot 可解析、可交互，screenshot 仅供视觉确认
-4. **日志要带时间范围** — 用 `--since` 过滤，避免被历史日志干扰
+4. **日志首选 SLS** — `python scripts/sls_query.py` 查最近 5 分钟，`docker logs` 仅做紧急兜底
 5. **验证循环有上限** — 最多 3 轮，避免无限循环
 
 ## 补充资源

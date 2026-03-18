@@ -1,0 +1,33 @@
+---
+description: 测试 API 时如何获取认证 Token
+globs:
+alwaysApply: false
+---
+
+## 测试认证 Token 获取
+
+测试需要认证的 API 时，在门户后端容器内生成超管 JWT：
+
+```bash
+TEST_TOKEN=$(docker exec portal-backend python3 -c "
+import os
+from jose import jwt
+from datetime import datetime, timedelta
+key = os.environ['JWT_SECRET_KEY']
+print(jwt.encode({
+    'sub': 'NongJun-dreamer',
+    'name': '农君',
+    'userid': 'NongJun-dreamer',
+    'is_super': True,
+    'exp': datetime.utcnow() + timedelta(hours=2)
+}, key, algorithm='HS256'))
+")
+export TEST_TOKEN
+AUTH="Authorization: Bearer $TEST_TOKEN"
+```
+
+- userid 必须是 `portal_admins` 表中 `is_super=1` 的用户
+- Token 有效期 2 小时，所有子模块共用 `.env` 中的 `JWT_SECRET_KEY` 签名
+- 后续请求携带 `-H "$AUTH"` 即可
+- 注意：密钥从环境变量读取，不可硬编码（hosting-backend 会拒绝旧默认值 `scrm-jwt-secret-key-2025`）
+- 各模块端口及更多测试方法见 `瑞小美AiOS/文档/参考资料/联调指南.md` 第 833 行起
