@@ -66,7 +66,7 @@ globs:
 | 热重载 | 开发环境必须启用 HMR |
 | 禁用 latest | 镜像必须指定具体版本号 |
 | 健康检查 | 所有容器必须配置，后端提供 /health 端点 |
-| 日志 | SLS 为唯一通道，Docker json-file 仅保留 1MB 紧急兜底 |
+| 日志 | 统一通过日志系统收集，Docker json-file 仅保留 1MB 紧急兜底 |
 | 容器间通信 | 用容器名，禁止硬编码 IP |
 | Nginx DNS | 用 resolver 127.0.0.11 + 变量 proxy_pass 避免 502 |
 | 敏感信息 | .env 管理，禁止硬编码，权限 600 |
