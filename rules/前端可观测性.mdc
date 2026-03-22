@@ -1,0 +1,19 @@
+---
+description: "前端可观测性规范。当涉及前端代码、Vue 组件、main.js、错误处理、日志上报时使用。"
+alwaysApply: false
+---
+# 前端可观测性
+
+## 规则
+
+1. 所有前端错误必须同时 console 输出 + 远程上报（日志平台或自建接口）
+2. 新建前端项目必须在入口文件初始化全局错误捕获（window.onerror + unhandledrejection）
+3. HTTP 请求统一通过封装的请求工具发出（自带错误上报），禁止裸用 fetch/axios
+4. catch 块禁止静默 — 至少 `console.error('[模块名]', error)`
+5. 禁止生产代码保留 `console.log` 调试输出
+
+## 排查流程
+
+1. 复现者提供控制台日志和操作路径
+2. 查日志平台过滤 module + url + userid 定位前端错误
+3. 结合后端同时段日志定位根因
