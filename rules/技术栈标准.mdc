@@ -32,7 +32,7 @@ globs:
 | **语言** | TypeScript | 类型安全 |
 | **框架** | Vue 3 | 统一前端框架 |
 | **构建工具** | Vite | 快速开发 |
-| **包管理器** | npm | 生态成熟 |
+| **包管理器** | pnpm（容器构建统一用 pnpm） | 快速、磁盘友好 |
 | **UI组件库** | Element Plus / Ant Design Vue | 企业级UI |
 | **CSS方案** | Tailwind CSS | 可与组件库共存 |
 | **HTTP客户端** | Axios | 统一请求库 |
@@ -66,7 +66,7 @@ globs:
 | 热重载 | 开发环境必须启用 HMR |
 | 禁用 latest | 镜像必须指定具体版本号 |
 | 健康检查 | 所有容器必须配置，后端提供 /health 端点 |
-| 日志 | 统一通过日志系统收集，Docker json-file 仅保留 1MB 紧急兜底 |
+| 日志轮转 | json-file 驱动，max-size 10m |
 | 容器间通信 | 用容器名，禁止硬编码 IP |
 | Nginx DNS | 用 resolver 127.0.0.11 + 变量 proxy_pass 避免 502 |
 | 敏感信息 | .env 管理，禁止硬编码，权限 600 |
