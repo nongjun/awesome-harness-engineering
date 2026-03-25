@@ -1,5 +1,5 @@
 ---
-description: "Python 编码风格，扩展通用规则"
+description: "Python 编码风格与安全，扩展通用规则"
 globs: ["**/*.py", "**/*.pyi"]
 alwaysApply: false
 ---
@@ -14,22 +14,7 @@ alwaysApply: false
 
 ## 不可变性
 
-优先使用不可变数据结构：
-
-```python
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class User:
-    name: str
-    email: str
-
-from typing import NamedTuple
-
-class Point(NamedTuple):
-    x: float
-    y: float
-```
+优先使用不可变数据结构：`dataclass` 配合 `frozen=True`，或 `typing.NamedTuple`，以减少共享可变状态带来的副作用与竞态。
 
 ## 格式化
 
@@ -37,6 +22,23 @@ class Point(NamedTuple):
 - **isort** 用于导入排序
 - **ruff** 用于代码检查
 
-## 参考
+## 安全
 
-参见项目文档了解全面的 Python 惯用写法和模式。
+- 使用 **bandit** 做静态安全分析：`bandit -r .`
+- 环境变量读取后校验非空，缺失时显式失败，不得静默继续
+
+## Pydantic Schema 继承
+
+**Update Schema 必须覆盖所有非 None 默认值字段**：当 `XxxUpdate` 继承 `XxxCreate` 时，Create 中合理的默认值（`gender="unknown"`、`source="manual"`、`tags=[]`）在 Update 语境下变成隐蔽的数据覆盖——前端不传该字段时，Pydantic 解析为默认值而非 None，下游 `if value is not None` 判断失效，执行了不该执行的更新。
+
+规则：`XxxUpdate` 中所有可部分更新的字段都声明为 `Optional[T] = None`，不依赖继承。
+
+## asyncio 对象生命周期
+
+**asyncio.Lock / httpx.AsyncClient 禁止模块级创建**：这些对象绑定创建时的 event loop。APScheduler 等调度器在独立线程创建新 loop 时，跨 loop 使用会报错。
+
+统一模式：`_get_xxx()` 函数追踪 `id(asyncio.get_running_loop())`，loop 变化时重建。
+
+## 异步陷阱
+
+**禁止 await 调用同步函数**：`await sync_function()` 不会报错但会阻塞 event loop，整个进程在该函数执行期间无法处理其他请求。同步数据库查询、文件 I/O 等耗时操作要么用 `asyncio.to_thread()` 包装，要么使用异步版本的库。

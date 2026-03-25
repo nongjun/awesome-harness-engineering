@@ -1,0 +1,56 @@
+---
+alwaysApply: true
+---
+
+# 代码部署与生效
+
+## 场景 A：Git 推送触发自动部署
+
+外部设备 push 到 Git 服务器后，webhook 自动处理：
+
+1. 自动提交服务器上未提交的本地修改（防丢失）
+2. `git pull --rebase` 拉取远程变更（冲突则 abort，旧容器不受影响）
+3. 分析变更文件，判断受影响模块，只重构相关服务
+4. **先 build 新镜像 → 成功才替换旧容器**（构建失败旧容器继续运行）
+5. 新镜像打版本标签（commit SHA 前 8 位），保留最近 5 个版本
+
+**无需 agent 干预。**
+
+## 场景 B：在本服务器直接改代码（Cursor / vibe coding）
+
+改完文件后 **不会实时自动生效**。有两种方式让改动生效：
+
+### 方式一：commit + push（推荐，全自动部署）
+
+Agent 改完代码后执行 `git add + commit + push`，push 会触发 webhook 自动部署。Agent 无需手动 rebuild。
+
+### 方式二：手动重构（立即生效，不依赖 Git）
+
+适用场景：调试中快速迭代，需要立即看到效果，或不想产生 Git 提交。
+
+| 修改内容 | 生效方式 | 原因 |
+|---------|---------|------|
+| 共享后端代码（volume 挂载） | `docker compose restart <受影响的服务>` | 挂载目录，重启即加载新代码 |
+| 共享前端组件 | 对应前端模块 `docker compose build + up -d` | 构建时 COPY 进镜像 |
+| 业务模块代码 | 对应模块 `docker compose build + up -d` | 构建时 COPY 进镜像 |
+| 基础依赖文件 | **所有相关模块**都要 `docker compose build + up -d` | 基础依赖变更影响全局 |
+| 非代码文件（文档等） | 无需操作 | 不影响运行中的服务 |
+
+**核心原则：Agent 改完代码必须通过方式一或方式二让改动生效，不能只改文件就结束。**
+
+**分工原则：子 agent（Task subagent）只负责改代码，不执行 git 操作和 docker 重构。代码生效（git push 或手动重构）统一由主 agent 在所有代码改动完成后执行。**
+
+## 重构安全流程
+
+在对应模块的 docker-compose.yml 所在目录执行：
+
+1. `docker compose build <service>` — 构建新镜像，旧容器继续运行
+2. 构建成功后 `docker compose up -d <service>` — 用新镜像替换容器
+3. 构建失败则排查修复，旧容器不受影响
+
+## 版本回滚
+
+每次成功部署后镜像打 commit SHA 标签，回滚步骤：
+1. `docker images <repo>` 查看可用版本
+2. `docker tag <repo>:<旧SHA> <repo>:latest`
+3. `docker compose up -d`
