@@ -27,21 +27,39 @@ alwaysApply: false
 
 ## 错误处理
 
-使用类型化 throws（Swift 6+）和模式匹配：
-
-```swift
-func load(id: String) throws(LoadError) -> Item {
-    guard let data = try? read(from: path) else {
-        throw .fileNotFound(id)
-    }
-    return try decode(data)
-}
-```
+Swift 6 起使用类型化 throws：在函数签名中写明抛出的具体错误类型，而不是笼统的 `Error`。解析或读取失败时抛出带上下文的枚举 case；配合 `guard` 早退与 `switch`／`if case` 等模式匹配分支处理，避免笼统捕获后忽略语义。
 
 ## 并发
 
 启用 Swift 6 严格并发检查。优先使用：
 
-- `Sendable` 值类型用于跨隔离边界传递数据
-- Actor 用于共享可变状态
-- 结构化并发（`async let`、`TaskGroup`）优于非结构化的 `Task {}`
+- 符合 `Sendable` 的值类型跨隔离边界传递数据
+- 用 Actor 封装需要跨任务共享的可变状态
+- 结构化并发（`async let`、任务组）组织子任务，优于随处派生的非结构化任务
+
+## `??` 运算符的 autoclosure 陷阱
+
+nil 合并运算符右侧实参按 autoclosure 延迟求值。在非 MainActor 隔离的函数里，若右侧表达式会触及主线程上的全局状态（例如从单例里读当前用户的 Token），会触发并发检查报错。处理方式：异步路径上先用 MainActor 上的闭包把需要的值取到局部再合并；若该同步函数业务上保证始终在主线程调用，则把该函数标为 MainActor 隔离。
+
+跨 Service 的 Token 与同类状态不要在各调用点重复写「默认值来自 AppState」——应在 `StorageService`（或等价层）提供如获取有效 Token 的 async 封装，统一处理 MainActor 隔离，避免到处内联从 AppState 取 Token 的 nil 合并写法。
+
+## macOS 窗口标题栏分隔线消除
+
+macOS 窗口标题栏底部有一条系统绘制的 1px 分隔线，影响扁平化 UI。消除需要**两步缺一不可**：
+
+**第一步**：NSWindow 上设置 titlebarAppearsTransparent 为 true、titlebarSeparatorStyle 为 none、并启用 fullSizeContentView。
+
+**第二步**：每个页面根视图必须是 ScrollView。SwiftUI 的 ScrollView 会与透明标题栏无缝衔接，VStack 根视图不行。固定头部或底部用 safeAreaInset 边沿修饰符实现。
+
+无效方案（踩过的坑）：只改分隔线样式、只开透明标题栏、只在主窗口外层包一层滚动视图、用 ZStack 铺底色再叠垂直栈、依赖工具栏基线分隔线开关、用几何读取器再包滚动视图——上述单独或组合均不能可靠消除该线。
+
+| 页面类型 | 做法 |
+|---------|------|
+| 纯内容页 | 以 ScrollView 为根 |
+| 固定头部+滚动内容+固定底部 | ScrollView 为根 + 安全区 inset（顶/底） |
+| 居中展示页 | ScrollView 为根 + 顶部占位高度模拟垂直居中 |
+| 已有滚动视图的子组件 | 将滚动提到最外层作根，其余用安全区 inset |
+
+## macOS Keychain 注意事项
+
+ad-hoc 签名的应用重新编译后，二进制签名变化会导致 Keychain ACL（访问控制列表）失效，系统不再信任新二进制对已有 Keychain 条目的访问权限，需要用户重新授权。开发调试阶段频繁编译时会反复遇到此问题。正式分发应使用 Developer ID 签名，签名身份稳定即可避免 ACL 反复失效。

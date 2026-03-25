@@ -5,29 +5,16 @@ alwaysApply: false
 ---
 # Go 安全
 
-> 本文件以 Go 特定内容扩展通用安全规则。
-
-## 密钥管理
-
-```go
-apiKey := os.Getenv("OPENAI_API_KEY")
-if apiKey == "" {
-    log.Fatal("OPENAI_API_KEY 未配置")
-}
-```
+> 密钥管理、输入验证等通用规范见安全红线。
 
 ## 安全扫描
 
-- 使用 **gosec** 进行静态安全分析：
-  ```bash
-  gosec ./...
-  ```
+- 使用 **gosec** 做静态安全分析：`gosec ./...`
+
+## 环境变量
+
+读取后校验非空，缺失时明确失败（记录或退出），不得静默继续。
 
 ## Context 与超时
 
-始终使用 `context.Context` 进行超时控制：
-
-```go
-ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-defer cancel()
-```
+对外部调用、RPC、数据库等可能阻塞的操作，一律通过 `context.Context` 传递；需要上限时，在调用链上设置合理超时并在结束时取消，避免泄漏与无限等待。

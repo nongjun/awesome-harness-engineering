@@ -18,13 +18,7 @@ alwaysApply: false
 
 ## 错误处理
 
-始终用上下文包装错误：
-
-```go
-if err != nil {
-    return fmt.Errorf("failed to create user: %w", err)
-}
-```
+向上返回错误时附带业务语义（说明在做什么失败），并保留原始错误供链式判断与日志；使用语言惯用的错误包装方式，避免只返回裸错误或丢失 cause。
 
 ## 参考
 

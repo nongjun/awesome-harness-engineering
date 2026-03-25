@@ -45,13 +45,9 @@
 
 ### 5. Subtree 子仓库同步
 
-项目中存在 git subtree 管理的子仓库，需要单独处理：
+如果项目使用 git subtree，自动检测并同步：
 
-| 子仓库路径 | 远程名 | 说明 |
-|-----------|--------|------|
-| `企微托管/技能` | `skills` | 企微托管技能库 |
-
-操作要点：
+- 通过 `.gitsubtree` 配置或 `git log --grep="git-subtree-dir"` 自动发现 subtree 映射关系
 - **推送**：子仓库不能用普通 `git push`，必须用 `git subtree push --prefix=<路径> <远程名> <分支>`
 - **拉取**：从子仓库远程拉取更新用 `git subtree pull --prefix=<路径> <远程名> <分支> --squash`
 - 在步骤 4 推送主仓库远程时，自动识别 subtree 远程并跳过普通推送，改用 subtree push
@@ -67,7 +63,7 @@
 | 拉取更新 | ✅ / 合并了 N 个提交 |
 | 推送 origin | ✅ / ❌ |
 | 推送 其他远程 | ✅ / ⏳ 超时 |
-| 子仓库 skills | ✅ / ❌ |
+| 子仓库 subtree | ✅ / ❌ / 无 subtree |
 ```
 
 ## 示例提交信息
